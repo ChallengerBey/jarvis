@@ -1,0 +1,10 @@
+{
+  "name": "J.A.R.V.I.S Assistant",
+  "description": "Voice-activated AI assistant capable of PC control and screen tracking.",
+  "requestFramePermissions": [
+    "microphone",
+    "camera",
+    "display-capture"
+  ],
+  "majorCapabilities": []
+}
