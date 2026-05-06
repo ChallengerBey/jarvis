@@ -597,9 +597,7 @@ export default function App() {
         const toolResult = await res.json();
         addLog("system", `Result: ${toolResult.message || "OK"}`);
 
-        if (isConnected && recognitionRef.current) {
-            try { recognitionRef.current.stop(); } catch(e) {}
-        }
+        // Recognition'ı durdurmuyoruz - sürekli dinlemeye devam etsin
     } catch (e: any) {
         addLog("error", `ERROR: Server offline?`);
     } finally {
@@ -662,9 +660,7 @@ export default function App() {
         }
     } catch (e) { addLog("error", "AI error!"); } finally { 
         setIsConnecting(false); 
-        if (isConnected && recognitionRef.current) {
-            try { recognitionRef.current.stop(); } catch(e) {}
-        }
+        // Recognition'ı durdurmuyoruz - sürekli dinlemeye devam etsin
     }
   };
 
