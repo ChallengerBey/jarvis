@@ -70,6 +70,23 @@ def execute():
                 pyautogui.press("enter")
             return jsonify({"status": "success", "message": f"{prog} started."})
 
+        elif action == "close_program":
+            prog = args.get("name", "")
+            # Alt+F4 ile aktif programı kapat
+            pyautogui.hotkey("alt", "f4")
+            return jsonify({"status": "success", "message": f"Closing {prog}."})
+
+        elif action == "close_all_programs":
+            # Tüm pencereleri kapat (Windows+D sonra Alt+F4)
+            pyautogui.hotkey("win", "d")
+            time.sleep(0.5)
+            for _ in range(10):  # En fazla 10 pencere kapat
+                pyautogui.hotkey("alt", "tab")
+                time.sleep(0.2)
+                pyautogui.hotkey("alt", "f4")
+                time.sleep(0.3)
+            return jsonify({"status": "success", "message": "Closing all programs."})
+
         elif action == "system_status":
             cpu = psutil.cpu_percent()
             ram = psutil.virtual_memory().percent
@@ -164,16 +181,35 @@ def music_control():
         return jsonify({"status": "error", "message": str(e)})
 
 def alkis_dinle():
-    CHUNK, RATE, THRESHOLD = 1024, 44100, 25000
+    CHUNK, RATE, THRESHOLD = 1024, 44100, 100  # Çok düşük threshold - test için
     p_in = pyaudio.PyAudio()
+    
+    # Mikrofon cihazlarını listele
+    print("[DEBUG] Available audio devices:")
+    for i in range(p_in.get_device_count()):
+        info = p_in.get_device_info_by_index(i)
+        if info['maxInputChannels'] > 0:
+            print(f"  Device {i}: {info['name']} - {info['maxInputChannels']} channels")
+    
     try:
+        # Default mikrofonu kullan
         stream = p_in.open(format=pyaudio.paInt16, channels=1, rate=RATE, input=True, frames_per_buffer=CHUNK)
         print("[*] Clap Sensor is Active...")
+        
+        frame_count = 0
+        
         while True:
             try:
                 data = np.frombuffer(stream.read(CHUNK, exception_on_overflow=False), dtype=np.int16)
-                if np.max(np.abs(data)) > THRESHOLD:
-                    print("[!] Clap detected!")
+                volume = np.max(np.abs(data))
+                
+                # Debug: Her 50 frame'de bir ses seviyesini göster (daha sık)
+                frame_count += 1
+                if frame_count % 50 == 0:
+                    print(f"[DEBUG] Audio level: {volume} (threshold: {THRESHOLD})")
+                
+                if volume > THRESHOLD:
+                    print(f"[!] Clap detected! Volume: {volume}")
                     
                     global clap_detected_flag
                     clap_detected_flag = True
@@ -182,7 +218,7 @@ def alkis_dinle():
                     # Şarkıyı başlat
                     try:
                         mixer.music.load("Sound/The Clash - Should I Stay or Should I Go (Official Audio) [BN1WwnEDWAM].mp3")
-                        mixer.music.set_volume(0.05)  # %5 ses seviyesi - çok düşük
+                        mixer.music.set_volume(0.05)
                         mixer.music.play()
                         print("[+] Music started playing")
                     except Exception as e:
@@ -193,10 +229,16 @@ def alkis_dinle():
                     
                     stream.stop_stream()
                     stream.close()
-                    print("[*] Clap Sensor Disabled.")
+                    print("[*] Clap Sensor Disabled after detection.")
                     return  # Fonksiyondan çık, bir daha dinleme
-            except: continue
-    except: pass
+                    
+            except Exception as e:
+                print(f"[DEBUG] Audio read error: {e}")
+                continue
+                
+    except Exception as e:
+        print(f"[-] Microphone error: {e}")
+        print("[!] Make sure microphone permissions are granted!")
 
 if __name__ == '__main__':
     threading.Thread(target=alkis_dinle, daemon=True).start()
