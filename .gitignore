@@ -5,3 +5,6 @@ coverage/
 *.log
 .env*
 !.env.example
+
+# Large model files (too big for Cloudflare Pages)
+models/*.onnx
